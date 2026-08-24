@@ -1,27 +1,54 @@
-
 package main
 
 import (
 	"fmt"
 	"os"
-	"path/filepath"
-	"strconv"
 	"strings"
 )
 
 func main() {
-	dir := "."
-	if len(os.Args) > 1 {
-		dir = os.Args[1]
+	if len(os.Args) < 2 {
+		fmt.Println("usage: markdown-converter <file.md>")
+		os.Exit(1)
 	}
-	var b strings.Builder
-	b.WriteString("# Report\n\n| File | Size |\n|---|---|\n")
-	filepath.Walk(dir, func(p string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() {
-			return nil
+	data, err := os.ReadFile(os.Args[1])
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	lines := strings.Split(string(data), "\n")
+	inList := false
+	for _, line := range lines {
+		t := strings.TrimSpace(line)
+		switch {
+		case strings.HasPrefix(t, "# "):
+			closeList(&inList)
+			fmt.Printf("<h1>%s</h1>\n", strings.TrimPrefix(t, "# "))
+		case strings.HasPrefix(t, "## "):
+			closeList(&inList)
+			fmt.Printf("<h2>%s</h2>\n", strings.TrimPrefix(t, "## "))
+		case strings.HasPrefix(t, "### "):
+			closeList(&inList)
+			fmt.Printf("<h3>%s</h3>\n", strings.TrimPrefix(t, "### "))
+		case strings.HasPrefix(t, "- "), strings.HasPrefix(t, "* "):
+			if !inList {
+				fmt.Println("<ul>")
+				inList = true
+			}
+			fmt.Printf("  <li>%s</li>\n", t[2:])
+		default:
+			closeList(&inList)
+			if t != "" {
+				fmt.Printf("<p>%s</p>\n", t)
+			}
 		}
-		b.WriteString("| " + p + " | " + strconv.FormatInt(info.Size(), 10) + " |\n")
-		return nil
-	})
-	fmt.Print(b.String())
+	}
+	closeList(&inList)
+}
+
+func closeList(inList *bool) {
+	if *inList {
+		fmt.Println("</ul>")
+		*inList = false
+	}
 }
