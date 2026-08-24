@@ -1,26 +1,27 @@
+
 package main
 
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 )
 
-// markdown_converter - Convert markdown formats
-func markdown_converter(path string) {
-	fmt.Println("========================================")
-	fmt.Println("  Markdown-Converter")
-	fmt.Println("  Convert markdown formats")
-	fmt.Println("========================================")
-	fmt.Println()
-	fmt.Println("Target:", path)
-	fmt.Println("Processing...")
-	fmt.Println("Done!")
-}
-
 func main() {
-	path := "."
+	dir := "."
 	if len(os.Args) > 1 {
-		path = os.Args[1]
+		dir = os.Args[1]
 	}
-	markdown_converter(path)
+	var b strings.Builder
+	b.WriteString("# Report\n\n| File | Size |\n|---|---|\n")
+	filepath.Walk(dir, func(p string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() {
+			return nil
+		}
+		b.WriteString("| " + p + " | " + strconv.FormatInt(info.Size(), 10) + " |\n")
+		return nil
+	})
+	fmt.Print(b.String())
 }
